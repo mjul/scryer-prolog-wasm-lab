@@ -1,0 +1,1 @@
+# scryer-prolog-wasm-lab
