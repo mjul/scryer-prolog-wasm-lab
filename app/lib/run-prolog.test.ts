@@ -12,7 +12,8 @@ describe("runProlog", () => {
 		const result = await runProlog("[user]. foo(a).", "foo(A).");
 		expect(result).toHaveProperty("ok");
 		expect(result.ok).toBeDefined();
-		// Assuming bindings have A as an atom with value 'a'
-		expect(result.ok.A.value).toBe("a");
+		expect(Array.isArray(result.ok)).toBe(true);
+		expect(result.ok?.length).toBeGreaterThan(0);
+		expect(result.ok?.[0].A.value).toBe("a");
 	});
 });
