@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { runProlog } from "./run-prolog";
+import { createProlog, runProlog } from "./run-prolog";
+
+describe("createProlog", () => {
+	it("should initialize and return Prolog instance", async () => {
+		const pl = await createProlog();
+		expect(pl).not.toBeNull;
+	});
+	it("the Prolog instance should be reusable", async () => {
+		const pl = await createProlog();
+		pl.consultText("[user]. foo(a). foo(b).");
+		const answers = pl.query("foo(X).");
+		const results: Set<string> = new Set();
+		for (const answer of answers) {
+			results.add(answer.bindings.X.valueOf().toString());
+		}
+		expect(Array.from(results).sort()).toEqual(["a", "b"]);
+	});
+});
 
 describe("runProlog", () => {
 	it("should return error for invalid Prolog program", async () => {

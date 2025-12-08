@@ -2,16 +2,20 @@ import { type Bindings, init, Prolog, type Query } from "scryer";
 
 let initialized = false;
 
-export async function runProlog(
-	program: string,
-	query: string,
-): Promise<{ ok?: Bindings[]; error?: string }> {
+/** Creates a Prolog interpreter. */
+export async function createProlog(): Promise<Prolog> {
 	if (!initialized) {
 		await init();
 		initialized = true;
 	}
+	return new Prolog();
+}
 
-	const pl = new Prolog();
+export async function runProlog(
+	program: string,
+	query: string,
+): Promise<{ ok?: Bindings[]; error?: string }> {
+	const pl = await createProlog();
 
 	try {
 		pl.consultText(program);
