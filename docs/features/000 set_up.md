@@ -24,3 +24,6 @@ Then add a husky pre-commit hook that runs `pnpm biome check --staged --write` t
 
 Add a note to docs\developers.md stating how to format, lint and fix code with  `pnpm biome format --write`. `pnpm biome lint --write` and `pnpm biome check --write`.
 
+## Then, add shadcn
+
+Please add shadcn to the project and initialise it.

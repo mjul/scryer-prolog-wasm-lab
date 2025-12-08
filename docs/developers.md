@@ -8,6 +8,18 @@ To start the development server, run:
 pnpm run dev
 ```
 
+## Run Tests
+
+```
+pnpm test
+```
+
+## Run Type Checker
+
+```
+pnpm typecheck
+```
+
 ## Code Formatting and Linting
 
 Use Biome for formatting and linting.
