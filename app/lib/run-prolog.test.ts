@@ -31,6 +31,6 @@ describe("runProlog", () => {
 		expect(result.ok).toBeDefined();
 		expect(Array.isArray(result.ok)).toBe(true);
 		expect(result.ok?.length).toBeGreaterThan(0);
-		expect(result.ok?.[0].A.value).toBe("a");
+		expect(result.ok?.[0].A.valueOf().toString()).toBe("a");
 	});
 });
