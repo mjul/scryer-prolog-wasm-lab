@@ -16,7 +16,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "~/components/ui/table";
-import { Tree } from "~/components/ui/tree";
+import { Tree, type TreeItem } from "~/components/ui/tree";
+import { Handshake, Store } from "lucide-react";
 import { createProlog, runQuery } from "~/lib/run-prolog";
 // This is not TypeScript-native import, but using ?raw to import the Prolog code as a string
 import PROLOG_PROGRAM from "./rules.pl?raw";
@@ -35,17 +36,10 @@ interface CompanyFact {
 
 interface Company {
 	id: string;
+	name: string;
 	currency?: string;
 	subsidiaries: Company[];
 	stores: string[];
-}
-
-interface TreeItem {
-	id: string;
-	name: string;
-	type: "company" | "store";
-	currency?: string;
-	children?: TreeItem[];
 }
 
 async function getSubsidiaries(
@@ -54,13 +48,14 @@ async function getSubsidiaries(
 ): Promise<Company[]> {
 	const subResult = await runQuery(
 		prolog,
-		`has_subsidiary(${companyId}, SubsidiaryId).`,
+		`has_subsidiary(${companyId}, SubsidiaryId), company(SubsidiaryId, SubsidiaryName).`,
 	);
 	if (!subResult.ok) return [];
 
 	const subs: Company[] = [];
 	for (const binding of subResult.ok) {
 		const subId = binding.SubsidiaryId.valueOf().toString();
+		const subName = binding.SubsidiaryName.valueOf().toString();
 		const subSubs = await getSubsidiaries(prolog, subId);
 		const subStores = await getStores(prolog, subId);
 		const subCurrencyResult = await runQuery(
@@ -71,7 +66,8 @@ async function getSubsidiaries(
 			? subCurrencyResult.ok[0]?.Ccy.valueOf().toString()
 			: undefined;
 		subs.push({
-			id: companyId,
+			id: subId,
+			name: subName,
 			currency: subCurrency,
 			subsidiaries: subSubs,
 			stores: subStores,
@@ -100,14 +96,13 @@ function companyToTreeItem(company: Company): TreeItem {
 		children.push({
 			id: store,
 			name: store,
-			type: "store",
+			icon: <Store />,
 		});
 	}
 	return {
 		id: company.id,
 		name: company.id,
-		type: "company",
-		currency: company.currency,
+		icon: <Handshake />,
 		children,
 	};
 }
@@ -193,24 +188,31 @@ export default function Multinationals() {
 		async function loadCompanyDetails(prolog: Prolog, companyId: string) {
 			try {
 				// Get currency
-				const currencyResult = await runQuery(
+				const result = await runQuery(
 					prolog,
-					`accounting_currency(${companyId}, Ccy).`,
+					`company(${companyId}, Name), (accounting_currency(${companyId}, Currency) -> Ccy = Currency ; Ccy = undefined).`,
 				);
-				const currency = currencyResult.ok
-					? currencyResult.ok[0]?.Ccy.valueOf().toString()
-					: undefined;
+				if (result.ok && result.ok.length === 1) {
+					// Currency is not available for all companies
+					const ccyResult = result.ok[0]?.Ccy.valueOf().toString();
+					const currency = ccyResult === "undefined" ? null : ccyResult;
+					const name = result.ok[0]?.Name.valueOf().toString();
 
-				// Get subsidiaries recursively
-				const subsidiaries = await getSubsidiaries(prolog, companyId);
-				const stores = await getStores(prolog, companyId);
+					// Get subsidiaries recursively
+					const subsidiaries = await getSubsidiaries(prolog, companyId);
+					const stores = await getStores(prolog, companyId);
 
-				setCompanyDetails({
-					id: companyId,
-					currency,
-					subsidiaries,
-					stores,
-				});
+					setCompanyDetails({
+						id: companyId,
+						name,
+						currency: currency?.toUpperCase() || "-",
+						subsidiaries,
+						stores,
+					});
+				} else {
+					setError(`Company ${companyId} not found.`);
+					setCompanyDetails(null);
+				}
 			} catch (err: unknown) {
 				if (err instanceof Error) {
 					setError(err.message);
@@ -252,7 +254,7 @@ export default function Multinationals() {
 						{companyDetails && (
 							<Card>
 								<CardHeader>
-									<CardTitle>{companyDetails.id}</CardTitle>
+									<CardTitle>{companyDetails.name}</CardTitle>
 									<CardDescription>
 										<dl>
 											<dt>Currency</dt>

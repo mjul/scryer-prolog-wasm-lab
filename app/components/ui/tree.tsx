@@ -7,11 +7,10 @@ import {
 	CollapsibleTrigger,
 } from "~/components/ui/collapsible";
 
-interface TreeItem {
+export interface TreeItem {
 	id: string;
 	name: string;
-	type: "company" | "store";
-	currency?: string;
+	icon: React.ReactNode;
 	children?: TreeItem[];
 }
 
@@ -23,7 +22,7 @@ interface TreeProps {
 export function Tree({ data, className }: TreeProps) {
 	const items = Array.isArray(data) ? data : [data];
 	return (
-		<div className={cn("overflow-hidden rounded-md border p-2", className)}>
+		<div className={className}>
 			{items.map((item) => (
 				<TreeNode key={item.id} item={item} />
 			))}
@@ -56,15 +55,8 @@ function TreeNode({ item }: { item: TreeItem }) {
 				</CollapsibleTrigger>
 
 				<span className="ml-1 flex items-center gap-2 text-sm">
-					{item.type === "company" ? (
-						<Folder className="h-4 w-4 text-blue-500" />
-					) : (
-						<File className="h-4 w-4 text-gray-500" />
-					)}
+					{item.icon && item.icon}
 					{item.name}
-					{item.currency && (
-						<span className="text-xs text-gray-600">({item.currency})</span>
-					)}
 				</span>
 			</div>
 
