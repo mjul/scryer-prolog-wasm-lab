@@ -1,3 +1,4 @@
+import { Handshake, Store } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Bindings, Prolog } from "scryer";
 import {
@@ -17,7 +18,6 @@ import {
 	TableRow,
 } from "~/components/ui/table";
 import { Tree, type TreeItem } from "~/components/ui/tree";
-import { Handshake, Store } from "lucide-react";
 import { createProlog, runQuery } from "~/lib/run-prolog";
 // This is not TypeScript-native import, but using ?raw to import the Prolog code as a string
 import PROLOG_PROGRAM from "./rules.pl?raw";
