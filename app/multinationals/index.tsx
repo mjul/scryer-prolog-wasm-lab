@@ -9,14 +9,6 @@ import {
 	CardTitle,
 } from "~/components/ui/card";
 import { DataTable } from "~/components/ui/data-table";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "~/components/ui/table";
 import { Tree, type TreeItem } from "~/components/ui/tree";
 import { createProlog, runQuery } from "~/lib/run-prolog";
 // This is not TypeScript-native import, but using ?raw to import the Prolog code as a string
