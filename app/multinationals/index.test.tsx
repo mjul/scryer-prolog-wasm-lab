@@ -37,4 +37,38 @@ describe("Multinationals", () => {
 			).toBe("-");
 		});
 	});
+	describe("All Stores", () => {
+		const allStoresCard = screen
+			.getByText("All Stores", { selector: '[data-slot="card-title"]' })
+			.closest('[data-slot="card"]');
+		const allStoresCardQueries = within(allStoresCard);
+		it("renders All Stores card", () => {
+			expect(allStoresCard).toBeInTheDocument();
+		});
+		it("eventually displays a list of stores", async () => {
+			await waitFor(async () => {
+				const storeRows = await allStoresCardQueries.findAllByText(/.*/, {
+					selector: 'tbody > tr[data-slot="table-row"]',
+				});
+				expect(storeRows.length).toBeGreaterThan(0);
+				console.log(`Found ${storeRows.length} store rows.`);
+				const rowTexts = storeRows.map((row) =>
+					row.textContent.replace(/\s+/g, ""),
+				);
+				// Check for some expected store entries
+				expect(rowTexts).toContain(
+					"BigCo International	BigCo Iceland	Reykjavik, Iceland	ISK".replace(
+						/\s+/g,
+						"",
+					),
+				);
+				expect(rowTexts).toContain(
+					"BigCo International	BigCo Norway	Oslo, Norway	NOK".replace(
+						/\s+/g,
+						"",
+					),
+				);
+			});
+		});
+	});
 });
