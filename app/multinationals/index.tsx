@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Bindings, Prolog } from "scryer";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -9,8 +10,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "~/components/ui/table";
-import { runProlog } from "~/lib/run-prolog";
-
+import { createProlog, runQuery } from "~/lib/run-prolog";
 // This is not TypeScript-native import, but using ?raw to import the Prolog code as a string
 import PROLOG_PROGRAM from "./rules.pl?raw";
 
@@ -28,7 +28,44 @@ interface Company {
 	stores: string[];
 }
 
+async function getSubsidiaries(
+	prolog: Prolog,
+	company: string,
+): Promise<Company[]> {
+	const subResult = await runQuery(prolog, `has_subsidiary(${company}, S).`);
+	if (!subResult.ok) return [];
+
+	const subs: Company[] = [];
+	for (const binding of subResult.ok) {
+		const subName = binding.S.valueOf().toString();
+		const subSubs = await getSubsidiaries(prolog, subName);
+		const subStores = await getStores(prolog, subName);
+		const subCurrencyResult = await runQuery(
+			prolog,
+			`accounting_currency(${subName}, C).`,
+		);
+		const subCurrency = subCurrencyResult.ok
+			? subCurrencyResult.ok[0]?.C.valueOf().toString()
+			: undefined;
+		subs.push({
+			name: subName,
+			currency: subCurrency,
+			subsidiaries: subSubs,
+			stores: subStores,
+		});
+	}
+	return subs;
+}
+
+async function getStores(prolog: Prolog, company: string): Promise<string[]> {
+	const storeResult = await runQuery(prolog, `has_store(${company}, S).`);
+	if (!storeResult.ok) return [];
+	return storeResult.ok.map((b: Bindings) => b.S.valueOf().toString());
+}
+
 export default function Multinationals() {
+	const [prolog, setProlog] = useState<Prolog | null>(null);
+	const [codeLoaded, setCodeLoaded] = useState(false);
 	const [companies, setCompanies] = useState<string[]>([]);
 	const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 	const [companyDetails, setCompanyDetails] = useState<Company | null>(null);
@@ -36,15 +73,35 @@ export default function Multinationals() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
+	// Start interpreter and load the Prolog code
 	useEffect(() => {
-		async function loadData() {
+		async function initializeProgram(code: string) {
+			const pl = await createProlog();
+			setProlog(pl);
+			setCodeLoaded(false);
 			try {
-				const program = PROLOG_PROGRAM;
+				pl.consultText(code);
+				setCodeLoaded(true);
+			} catch (err: unknown) {
+				if (err instanceof Error) {
+					setError(`Failed to load Prolog code: ${err.message}`);
+				} else {
+					setError("Failed to load Prolog code: Unknown error");
+				}
+			}
+		}
+		initializeProgram(PROLOG_PROGRAM);
+	}, []);
 
+	useEffect(() => {
+		async function loadData(prolog: Prolog) {
+			try {
 				// Get companies
-				const companyResult = await runProlog(program, "company(C).");
+				const companyResult = await runQuery(prolog, "company(C).");
 				if (companyResult.ok) {
-					const comps = companyResult.ok.map((b: any) => b.C.value);
+					const comps = companyResult.ok.map((b: Bindings) =>
+						b.C.valueOf().toString(),
+					);
 					setCompanies(comps);
 				}
 
@@ -55,49 +112,46 @@ export default function Multinationals() {
 					accounting_currency(Store, Currency),
 					top_level_owner(Top, Owner).
 				`;
-				const storeResult = await runProlog(program, storeQuery);
+				const storeResult = await runQuery(prolog, storeQuery);
 				if (storeResult.ok) {
-					const storeData: StoreData[] = storeResult.ok.map((b: any) => ({
-						Top: b.Top.value,
-						Owner: b.Owner.value,
-						Store: b.Store.value,
-						Currency: b.Currency.value,
+					const storeData: StoreData[] = storeResult.ok.map((b: Bindings) => ({
+						Top: b.Top.valueOf().toString(),
+						Owner: b.Owner.valueOf().toString(),
+						Store: b.Store.valueOf().toString(),
+						Currency: b.Currency.valueOf().toString().toUpperCase(),
 					}));
 					setStores(storeData);
 				}
-			} catch (err: any) {
-				setError(err.message);
+			} catch (err: unknown) {
+				if (err instanceof Error) {
+					setError(err.message);
+				} else {
+					setError("Unknown error in company data query.");
+				}
 			} finally {
 				setLoading(false);
 			}
 		}
-		loadData();
-	}, []);
+		if (prolog && codeLoaded) {
+			loadData(prolog);
+		}
+	}, [prolog, codeLoaded]);
 
 	useEffect(() => {
-		if (!selectedCompany) {
-			setCompanyDetails(null);
-			return;
-		}
-
-		const company = selectedCompany;
-
-		async function loadCompanyDetails() {
+		async function loadCompanyDetails(prolog: Prolog, company: string) {
 			try {
-				const program = PROLOG_PROGRAM;
-
 				// Get currency
-				const currencyResult = await runProlog(
-					program,
+				const currencyResult = await runQuery(
+					prolog,
 					`accounting_currency(${company}, C).`,
 				);
 				const currency = currencyResult.ok
-					? currencyResult.ok[0]?.C.value
+					? currencyResult.ok[0]?.C.valueOf().toString()
 					: undefined;
 
 				// Get subsidiaries recursively
-				const subsidiaries = await getSubsidiaries(program, company);
-				const stores = await getStores(program, company);
+				const subsidiaries = await getSubsidiaries(prolog, company);
+				const stores = await getStores(prolog, company);
 
 				setCompanyDetails({
 					name: company,
@@ -105,54 +159,20 @@ export default function Multinationals() {
 					subsidiaries,
 					stores,
 				});
-			} catch (err: any) {
-				console.error(err);
+			} catch (err: unknown) {
+				if (err instanceof Error) {
+					setError(err.message);
+				} else {
+					setError("Unknown error in company details query.");
+				}
 			}
 		}
-
-		loadCompanyDetails();
-	}, [selectedCompany]);
-
-	async function getSubsidiaries(
-		program: string,
-		company: string,
-	): Promise<Company[]> {
-		const subResult = await runProlog(
-			program,
-			`has_subsidiary(${company}, S).`,
-		);
-		if (!subResult.ok) return [];
-
-		const subs: Company[] = [];
-		for (const binding of subResult.ok) {
-			const subName = binding.S.value;
-			const subSubs = await getSubsidiaries(program, subName);
-			const subStores = await getStores(program, subName);
-			const subCurrencyResult = await runProlog(
-				program,
-				`accounting_currency(${subName}, C).`,
-			);
-			const subCurrency = subCurrencyResult.ok
-				? subCurrencyResult.ok[0]?.C.value
-				: undefined;
-			subs.push({
-				name: subName,
-				currency: subCurrency,
-				subsidiaries: subSubs,
-				stores: subStores,
-			});
+		if (prolog && codeLoaded && selectedCompany) {
+			loadCompanyDetails(prolog, selectedCompany);
+		} else {
+			setCompanyDetails(null);
 		}
-		return subs;
-	}
-
-	async function getStores(
-		program: string,
-		company: string,
-	): Promise<string[]> {
-		const storeResult = await runProlog(program, `has_store(${company}, S).`);
-		if (!storeResult.ok) return [];
-		return storeResult.ok.map((b: any) => b.S.value);
-	}
+	}, [selectedCompany, prolog, codeLoaded]);
 
 	if (loading) return <div>Loading...</div>;
 	if (error) return <div>Error: {error}</div>;
