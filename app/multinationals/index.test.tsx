@@ -7,9 +7,6 @@ vi.mock("~/lib/run-prolog", () => ({
 	createProlog: vi.fn(() => Promise.resolve({ consultText: vi.fn() })),
 	runQuery: vi.fn(() => Promise.resolve({ ok: [] })),
 }));
-vi.mock("./rules.pl?raw", () => ({
-	default: "mocked prolog code",
-}));
 
 describe("Multinationals", () => {
 	it("renders the component without crashing", () => {
