@@ -107,7 +107,7 @@ function companyToTreeItem(company: Company): TreeItem {
 	}
 	return {
 		id: company.id,
-		name: company.id,
+		name: company.name,
 		icon: <Handshake />,
 		children,
 	};
