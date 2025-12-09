@@ -318,6 +318,23 @@ export default function Multinationals() {
 					</CardContent>
 				</Card>
 			</div>
+			<div className="grid grid-cols-1 mt-4">
+				<Card className="bg-muted flex flex-row">
+					<CardHeader>
+						<CardTitle className="text-sm">Status</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<dl className="flex flex-row gap-4 text-sm">
+							<dt className="text-muted-foreground">Prolog:</dt>
+							<dd>{prolog ? "Initialized" : "Initializing..."}</dd>
+							<dt className="text-muted-foreground">Code:</dt>
+							<dd>{loading ? "Loading..." : "Loaded"}</dd>
+							<dt className="text-muted-foreground">Error:</dt>
+							<dd>{error ? error : "-"}</dd>
+						</dl>
+					</CardContent>
+				</Card>
+			</div>
 		</div>
 	);
 }
