@@ -244,9 +244,6 @@ export default function Multinationals() {
 		}
 	}, [selectedCompany, prolog, codeLoaded]);
 
-	if (loading) return <div>Loading...</div>;
-	if (error) return <div>Error: {error}</div>;
-
 	return (
 		<div className="container mx-auto p-4">
 			<h1 className="text-2xl font-bold mb-4">Multinational</h1>
