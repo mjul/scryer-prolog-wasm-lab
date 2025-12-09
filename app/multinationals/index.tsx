@@ -22,16 +22,22 @@ import { createProlog, runQuery } from "~/lib/run-prolog";
 // This is not TypeScript-native import, but using ?raw to import the Prolog code as a string
 import PROLOG_PROGRAM from "./rules.pl?raw";
 
-interface StoreData {
-	Top: string;
-	Owner: string;
-	Store: string;
-	Currency: string;
-}
-
+/** Corresponds to the fact company(CompanyID, Name). */
 interface CompanyFact {
 	id: string;
 	name: string;
+}
+
+/** Corresponds to the fact store(StoreID). */
+interface StoreFact {
+	id: string;
+}
+
+interface StoreData {
+	top: CompanyFact;
+	owner: CompanyFact;
+	store: StoreFact;
+	currency: string;
 }
 
 interface Company {
@@ -154,18 +160,26 @@ export default function Multinationals() {
 
 				// Get stores data
 				const storeQuery = `
-					store(Store),
-					has_store(Owner, Store),
-					accounting_currency(Store, Currency),
-					top_level_owner(Top, Owner).
+					company(OwnerId, OwnerName),
+					has_store(OwnerId, StoreId),
+					store(StoreId),
+					accounting_currency(StoreId, Currency),
+					top_level_owner(TopId, OwnerId),
+					company(TopId, TopName).
 				`;
 				const storeResult = await runQuery(prolog, storeQuery);
 				if (storeResult.ok) {
 					const storeData: StoreData[] = storeResult.ok.map((b: Bindings) => ({
-						Top: b.Top.valueOf().toString(),
-						Owner: b.Owner.valueOf().toString(),
-						Store: b.Store.valueOf().toString(),
-						Currency: b.Currency.valueOf().toString().toUpperCase(),
+						top: {
+							id: b.TopId.valueOf().toString(),
+							name: b.TopName.valueOf().toString(),
+						},
+						owner: {
+							id: b.OwnerId.valueOf().toString(),
+							name: b.OwnerName.valueOf().toString(),
+						},
+						store: { id: b.StoreId.valueOf().toString() },
+						currency: b.Currency.valueOf().toString().toUpperCase(),
 					}));
 					setStores(storeData);
 				}
@@ -291,12 +305,12 @@ export default function Multinationals() {
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{stores.map((store, index) => (
-									<TableRow key={index}>
-										<TableCell>{store.Top}</TableCell>
-										<TableCell>{store.Owner}</TableCell>
-										<TableCell>{store.Store}</TableCell>
-										<TableCell>{store.Currency}</TableCell>
+								{stores.map((row) => (
+									<TableRow key={row.store.id}>
+										<TableCell>{row.top.name}</TableCell>
+										<TableCell>{row.owner.name}</TableCell>
+										<TableCell>{row.store.id}</TableCell>
+										<TableCell>{row.currency}</TableCell>
 									</TableRow>
 								))}
 							</TableBody>
