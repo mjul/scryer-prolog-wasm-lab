@@ -14,6 +14,12 @@ has_subsidiary(bigco_intl, bigco_norway).
 has_subsidiary(bigco_intl, bigco_denmark).
 
 % --- Data: Stores ---
+% store(StoreID, Location).
+store(bigco_reykjavik, "Reykjavik, Iceland").
+store(bigco_stykkisholmur, "Stykkishólmur, Iceland").
+store(bigco_oslo, "Oslo, Norway").
+store(bigco_herning, "Herning, Denmark").
+
 % has_store(CompanyID, StoreID).
 has_store(bigco_iceland, bigco_reykjavik).
 has_store(bigco_iceland, bigco_stykkisholmur).
@@ -35,11 +41,6 @@ accounting_currency(Store, Currency) :-
 
 
 % --- Logic: Ownership & Definitions ---
-
-% Store definition
-store(S) :- 
-    has_store(CompanyID, S), 
-    company(CompanyID, _).
 
 % Transitive ownership
 % owns(ParentCompanyID, ChildCompanyID).

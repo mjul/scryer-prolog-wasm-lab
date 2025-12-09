@@ -20,9 +20,10 @@ interface CompanyFact {
 	name: string;
 }
 
-/** Corresponds to the fact store(StoreID). */
+/** Corresponds to the fact store(StoreID, Location). */
 interface StoreFact {
 	id: string;
+	location: string;
 }
 
 interface StoreData {
@@ -37,7 +38,7 @@ interface Company {
 	name: string;
 	currency?: string;
 	subsidiaries: Company[];
-	stores: string[];
+	stores: StoreFact[];
 }
 
 async function getSubsidiaries(
@@ -55,7 +56,7 @@ async function getSubsidiaries(
 		const subId = binding.SubsidiaryId.valueOf().toString();
 		const subName = binding.SubsidiaryName.valueOf().toString();
 		const subSubs = await getSubsidiaries(prolog, subId);
-		const subStores = await getStores(prolog, subId);
+		const subStores: StoreFact[] = await getStores(prolog, subId);
 		const subCurrencyResult = await runQuery(
 			prolog,
 			`accounting_currency(${subId}, Ccy).`,
@@ -74,13 +75,19 @@ async function getSubsidiaries(
 	return subs;
 }
 
-async function getStores(prolog: Prolog, companyId: string): Promise<string[]> {
+async function getStores(
+	prolog: Prolog,
+	companyId: string,
+): Promise<StoreFact[]> {
 	const storeResult = await runQuery(
 		prolog,
-		`has_store(${companyId}, StoreId).`,
+		`has_store(${companyId}, StoreId), store(StoreId, Location).`,
 	);
 	if (!storeResult.ok) return [];
-	return storeResult.ok.map((b: Bindings) => b.StoreId.valueOf().toString());
+	return storeResult.ok.map((b: Bindings) => ({
+		id: b.StoreId.valueOf().toString(),
+		location: b.Location.valueOf().toString(),
+	}));
 }
 
 function companyToTreeItem(company: Company): TreeItem {
@@ -92,8 +99,8 @@ function companyToTreeItem(company: Company): TreeItem {
 	// Add stores
 	for (const store of company.stores) {
 		children.push({
-			id: store,
-			name: store,
+			id: store.id,
+			name: store.location,
 			icon: <Store />,
 		});
 	}
@@ -154,7 +161,7 @@ export default function Multinationals() {
 				const storeQuery = `
 					company(OwnerId, OwnerName),
 					has_store(OwnerId, StoreId),
-					store(StoreId),
+					store(StoreId, StoreLocation),
 					accounting_currency(StoreId, Currency),
 					top_level_owner(TopId, OwnerId),
 					company(TopId, TopName).
@@ -170,7 +177,10 @@ export default function Multinationals() {
 							id: b.OwnerId.valueOf().toString(),
 							name: b.OwnerName.valueOf().toString(),
 						},
-						store: { id: b.StoreId.valueOf().toString() },
+						store: {
+							id: b.StoreId.valueOf().toString(),
+							location: b.StoreLocation.valueOf().toString(),
+						},
 						currency: b.Currency.valueOf().toString().toUpperCase(),
 					}));
 					setStores(storeData);
@@ -298,8 +308,8 @@ export default function Multinationals() {
 									header: "Owner",
 								},
 								{
-									accessorKey: "store.id",
-									header: "Store",
+									accessorKey: "store.location",
+									header: "Store Location",
 								},
 								{
 									accessorKey: "currency",
