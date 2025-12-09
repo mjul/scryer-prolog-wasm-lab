@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Bindings, Prolog } from "scryer";
-import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { DataTable } from "~/components/ui/data-table";
 import {
 	Table,
 	TableBody,
@@ -200,20 +200,17 @@ export default function Multinationals() {
 						<CardTitle>Companies</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="space-y-2">
-							{companies.map((company) => (
-								<Button
-									key={company.id}
-									variant={
-										selectedCompany === company.id ? "default" : "outline"
-									}
-									onClick={() => setSelectedCompany(company.id)}
-									className="w-full justify-start"
-								>
-									{company.name}
-								</Button>
-							))}
-						</div>
+						<DataTable
+							columns={[
+								{
+									accessorKey: "name",
+									header: "Company Name",
+								},
+							]}
+							data={companies}
+							onRowClick={(company) => setSelectedCompany(company.id)}
+							selectedId={selectedCompany || undefined}
+						/>
 						{companyDetails && (
 							<div className="mt-4">
 								<h3 className="font-semibold">{companyDetails.id}</h3>
