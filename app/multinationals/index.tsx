@@ -16,6 +16,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "~/components/ui/table";
+import { Tree } from "~/components/ui/tree";
 import { createProlog, runQuery } from "~/lib/run-prolog";
 // This is not TypeScript-native import, but using ?raw to import the Prolog code as a string
 import PROLOG_PROGRAM from "./rules.pl?raw";
@@ -37,6 +38,14 @@ interface Company {
 	currency?: string;
 	subsidiaries: Company[];
 	stores: string[];
+}
+
+interface TreeItem {
+	id: string;
+	name: string;
+	type: "company" | "store";
+	currency?: string;
+	children?: TreeItem[];
 }
 
 async function getSubsidiaries(
@@ -78,6 +87,29 @@ async function getStores(prolog: Prolog, companyId: string): Promise<string[]> {
 	);
 	if (!storeResult.ok) return [];
 	return storeResult.ok.map((b: Bindings) => b.StoreId.valueOf().toString());
+}
+
+function companyToTreeItem(company: Company): TreeItem {
+	const children: TreeItem[] = [];
+	// Add subsidiaries
+	for (const sub of company.subsidiaries) {
+		children.push(companyToTreeItem(sub));
+	}
+	// Add stores
+	for (const store of company.stores) {
+		children.push({
+			id: store,
+			name: store,
+			type: "store",
+		});
+	}
+	return {
+		id: company.id,
+		name: company.id,
+		type: "company",
+		currency: company.currency,
+		children,
+	};
 }
 
 export default function Multinationals() {
@@ -233,7 +265,7 @@ export default function Multinationals() {
 										<dl>
 											<dt>Subsidiaries</dt>
 											<dd>
-												<CompanyTree company={companyDetails} />
+												<Tree data={companyToTreeItem(companyDetails)} />
 											</dd>
 										</dl>
 									</CardDescription>
@@ -270,35 +302,6 @@ export default function Multinationals() {
 					</CardContent>
 				</Card>
 			</div>
-		</div>
-	);
-}
-
-function CompanyTree({ company }: { company: Company }) {
-	return (
-		<div className="ml-4">
-			<div className="font-medium">{company.id}</div>
-			{company.currency && (
-				<div className="text-sm text-gray-600">
-					Currency: {company.currency}
-				</div>
-			)}
-			{company.subsidiaries.length > 0 && (
-				<div>
-					{company.subsidiaries.map((sub) => (
-						<CompanyTree key={sub.id} company={sub} />
-					))}
-				</div>
-			)}
-			{company.stores.length > 0 && (
-				<div className="ml-4">
-					{company.stores.map((store) => (
-						<div key={store} className="text-sm">
-							🏪 {store}
-						</div>
-					))}
-				</div>
-			)}
 		</div>
 	);
 }
