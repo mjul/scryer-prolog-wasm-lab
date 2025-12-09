@@ -13,6 +13,28 @@ Install the dependencies:
 pnpm install
 ```
 
+### Developing Prolog Code
+For development, it can be useful to run Scryer Prolog in Docker, and use a Docker Volume (`-v`) to mount
+your project files into that image, so you can easily test them.
+
+```bash
+    docker run -v .:/mnt -it mjt128/scryer-prolog
+```    
+Now you see the `?-` prompt from Prolog you can use `consult` to read a
+Prolog source file from the mounted volume:
+
+```
+?- consult('/mnt/app/multinationals/rules.pl').
+   true.
+```
+
+You can query it like so:
+
+```
+?- accounting_currency(bigco_reykjavik, C).
+   C = isk
+```
+
 ### Development
 
 Start the development server with HMR:
