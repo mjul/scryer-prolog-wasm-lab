@@ -2,10 +2,10 @@
 
 % --- Data: Companies ---
 % company(CompanyID, Name).
-company(bigco_intl, 'BigCo International').
-company(bigco_iceland, 'BigCo Iceland').
-company(bigco_norway, 'BigCo Norway').
-company(bigco_denmark, 'BigCo Denmark').
+company(bigco_intl, "BigCo International").
+company(bigco_iceland, "BigCo Iceland").
+company(bigco_norway, "BigCo Norway").
+company(bigco_denmark, "BigCo Denmark").
 
 % --- Data: Subsidiaries ---
 % has_subsidiary(ParentCompanyID, SubsidiaryCompanyID).
