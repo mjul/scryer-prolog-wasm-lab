@@ -253,7 +253,7 @@ export default function Multinationals() {
 					<CardHeader>
 						<CardTitle>Companies</CardTitle>
 					</CardHeader>
-					<CardContent>
+					<CardContent className="flex flex-col gap-4">
 						<DataTable
 							columns={[
 								{
