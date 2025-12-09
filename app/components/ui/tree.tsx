@@ -1,11 +1,11 @@
+import { ChevronDown, ChevronRight } from "lucide-react";
 import * as React from "react";
-import { ChevronRight, ChevronDown, File, Folder } from "lucide-react";
-import { cn } from "~/lib/utils";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "~/components/ui/collapsible";
+import { cn } from "~/lib/utils";
 
 export interface TreeItem {
 	id: string;
@@ -44,6 +44,7 @@ function TreeNode({ item }: { item: TreeItem }) {
 							!hasChildren && "opacity-50 disabled:pointer-events-none",
 						)}
 						disabled={!hasChildren}
+						type="button"
 					>
 						{hasChildren &&
 							(isOpen ? (
