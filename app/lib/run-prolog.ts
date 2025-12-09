@@ -37,3 +37,27 @@ export async function runProlog(
 		}
 	}
 }
+
+export async function runQuery(
+	pl: Prolog,
+	query: string,
+): Promise<{ ok?: Bindings[]; error?: string }> {
+	try {
+		const answers: Query = pl.query(query);
+		const results: Bindings[] = [];
+		for (const answer of answers) {
+			results.push(answer.bindings);
+		}
+		if (results.length > 0) {
+			return { ok: results };
+		} else {
+			return { error: "No solution found" };
+		}
+	} catch (e: unknown) {
+		if (e instanceof Error) {
+			return { error: e.message };
+		} else {
+			return { error: "Unknown error" };
+		}
+	}
+}
