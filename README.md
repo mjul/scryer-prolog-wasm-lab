@@ -2,6 +2,11 @@
 
 Examples of using Scryer Prolog in web applications, running the Prolog interpreter in WASM on the client.
 
+We build a web application where the main application logic is in Scryer Prolog and the presentation layer is in React Router.
+
+For the case of multinational sock shops, see the Prolog code in [rules.pl](./app/multinationals/rules.pl).
+
+
 ## Getting Started
 This is a web application built on React Router and Node, automated with `pnpm`.
 
