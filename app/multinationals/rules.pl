@@ -1,15 +1,20 @@
 % --- Data: Companies & Hierarchy ---
-company(bigco_intl).
-company(bigco_iceland).
-company(bigco_norway).
-company(bigco_denmark).
+
+% --- Data: Companies ---
+% company(CompanyID, Name).
+company(bigco_intl, 'BigCo International').
+company(bigco_iceland, 'BigCo Iceland').
+company(bigco_norway, 'BigCo Norway').
+company(bigco_denmark, 'BigCo Denmark').
 
 % --- Data: Subsidiaries ---
+% has_subsidiary(ParentCompanyID, SubsidiaryCompanyID).
 has_subsidiary(bigco_intl, bigco_iceland).
 has_subsidiary(bigco_intl, bigco_norway).
 has_subsidiary(bigco_intl, bigco_denmark).
 
 % --- Data: Stores ---
+% has_store(CompanyID, StoreID).
 has_store(bigco_iceland, bigco_reykjavik).
 has_store(bigco_iceland, bigco_stykkisholmur).
 has_store(bigco_norway, bigco_oslo).
@@ -33,10 +38,11 @@ accounting_currency(Store, Currency) :-
 
 % Store definition
 store(S) :- 
-    has_store(Company, S), 
-    company(Company).
+    has_store(CompanyID, S), 
+    company(CompanyID, _).
 
 % Transitive ownership
+% owns(ParentCompanyID, ChildCompanyID).
 % 1. Direct
 owns(Parent, Child) :- 
     has_subsidiary(Parent, Child).

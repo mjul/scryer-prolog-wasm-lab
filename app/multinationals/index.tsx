@@ -21,8 +21,13 @@ interface StoreData {
 	Currency: string;
 }
 
-interface Company {
+interface CompanyFact {
+	id: string;
 	name: string;
+}
+
+interface Company {
+	id: string;
 	currency?: string;
 	subsidiaries: Company[];
 	stores: string[];
@@ -30,25 +35,28 @@ interface Company {
 
 async function getSubsidiaries(
 	prolog: Prolog,
-	company: string,
+	companyId: string,
 ): Promise<Company[]> {
-	const subResult = await runQuery(prolog, `has_subsidiary(${company}, S).`);
+	const subResult = await runQuery(
+		prolog,
+		`has_subsidiary(${companyId}, SubsidiaryId).`,
+	);
 	if (!subResult.ok) return [];
 
 	const subs: Company[] = [];
 	for (const binding of subResult.ok) {
-		const subName = binding.S.valueOf().toString();
-		const subSubs = await getSubsidiaries(prolog, subName);
-		const subStores = await getStores(prolog, subName);
+		const subId = binding.SubsidiaryId.valueOf().toString();
+		const subSubs = await getSubsidiaries(prolog, subId);
+		const subStores = await getStores(prolog, subId);
 		const subCurrencyResult = await runQuery(
 			prolog,
-			`accounting_currency(${subName}, C).`,
+			`accounting_currency(${subId}, Ccy).`,
 		);
 		const subCurrency = subCurrencyResult.ok
-			? subCurrencyResult.ok[0]?.C.valueOf().toString()
+			? subCurrencyResult.ok[0]?.Ccy.valueOf().toString()
 			: undefined;
 		subs.push({
-			name: subName,
+			id: companyId,
 			currency: subCurrency,
 			subsidiaries: subSubs,
 			stores: subStores,
@@ -57,16 +65,19 @@ async function getSubsidiaries(
 	return subs;
 }
 
-async function getStores(prolog: Prolog, company: string): Promise<string[]> {
-	const storeResult = await runQuery(prolog, `has_store(${company}, S).`);
+async function getStores(prolog: Prolog, companyId: string): Promise<string[]> {
+	const storeResult = await runQuery(
+		prolog,
+		`has_store(${companyId}, StoreId).`,
+	);
 	if (!storeResult.ok) return [];
-	return storeResult.ok.map((b: Bindings) => b.S.valueOf().toString());
+	return storeResult.ok.map((b: Bindings) => b.StoreId.valueOf().toString());
 }
 
 export default function Multinationals() {
 	const [prolog, setProlog] = useState<Prolog | null>(null);
 	const [codeLoaded, setCodeLoaded] = useState(false);
-	const [companies, setCompanies] = useState<string[]>([]);
+	const [companies, setCompanies] = useState<CompanyFact[]>([]);
 	const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 	const [companyDetails, setCompanyDetails] = useState<Company | null>(null);
 	const [stores, setStores] = useState<StoreData[]>([]);
@@ -97,11 +108,14 @@ export default function Multinationals() {
 		async function loadData(prolog: Prolog) {
 			try {
 				// Get companies
-				const companyResult = await runQuery(prolog, "company(C).");
+				const companyResult = await runQuery(prolog, "company(Id, Name).");
 				if (companyResult.ok) {
-					const comps = companyResult.ok.map((b: Bindings) =>
-						b.C.valueOf().toString(),
-					);
+					const comps: CompanyFact[] = companyResult.ok.map((b: Bindings) => {
+						return {
+							id: b.Id.valueOf().toString(),
+							name: b.Name.valueOf().toString(),
+						};
+					});
 					setCompanies(comps);
 				}
 
@@ -138,23 +152,23 @@ export default function Multinationals() {
 	}, [prolog, codeLoaded]);
 
 	useEffect(() => {
-		async function loadCompanyDetails(prolog: Prolog, company: string) {
+		async function loadCompanyDetails(prolog: Prolog, companyId: string) {
 			try {
 				// Get currency
 				const currencyResult = await runQuery(
 					prolog,
-					`accounting_currency(${company}, C).`,
+					`accounting_currency(${companyId}, Ccy).`,
 				);
 				const currency = currencyResult.ok
-					? currencyResult.ok[0]?.C.valueOf().toString()
+					? currencyResult.ok[0]?.Ccy.valueOf().toString()
 					: undefined;
 
 				// Get subsidiaries recursively
-				const subsidiaries = await getSubsidiaries(prolog, company);
-				const stores = await getStores(prolog, company);
+				const subsidiaries = await getSubsidiaries(prolog, companyId);
+				const stores = await getStores(prolog, companyId);
 
 				setCompanyDetails({
-					name: company,
+					id: companyId,
 					currency,
 					subsidiaries,
 					stores,
@@ -189,18 +203,20 @@ export default function Multinationals() {
 						<div className="space-y-2">
 							{companies.map((company) => (
 								<Button
-									key={company}
-									variant={selectedCompany === company ? "default" : "outline"}
-									onClick={() => setSelectedCompany(company)}
+									key={company.id}
+									variant={
+										selectedCompany === company.id ? "default" : "outline"
+									}
+									onClick={() => setSelectedCompany(company.id)}
 									className="w-full justify-start"
 								>
-									{company}
+									{company.name}
 								</Button>
 							))}
 						</div>
 						{companyDetails && (
 							<div className="mt-4">
-								<h3 className="font-semibold">{companyDetails.name}</h3>
+								<h3 className="font-semibold">{companyDetails.id}</h3>
 								{companyDetails.currency && (
 									<p>Currency: {companyDetails.currency}</p>
 								)}
@@ -244,7 +260,7 @@ export default function Multinationals() {
 function CompanyTree({ company }: { company: Company }) {
 	return (
 		<div className="ml-4">
-			<div className="font-medium">{company.name}</div>
+			<div className="font-medium">{company.id}</div>
 			{company.currency && (
 				<div className="text-sm text-gray-600">
 					Currency: {company.currency}
@@ -253,7 +269,7 @@ function CompanyTree({ company }: { company: Company }) {
 			{company.subsidiaries.length > 0 && (
 				<div>
 					{company.subsidiaries.map((sub) => (
-						<CompanyTree key={sub.name} company={sub} />
+						<CompanyTree key={sub.id} company={sub} />
 					))}
 				</div>
 			)}
