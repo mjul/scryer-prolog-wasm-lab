@@ -1,20 +1,9 @@
-# Welcome to React Router!
+# Scryer Prolog WASM Lab
 
-A modern, production-ready template for building full-stack React applications using React Router.
-
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
-
-## Features
-
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+Examples of using Scryer Prolog in web applications, running the Prolog interpreter in WASM on the client.
 
 ## Getting Started
+This is a web application built on React Router and Node, automated with `pnpm`.
 
 ### Installation
 
@@ -82,6 +71,3 @@ Make sure to deploy the output of `pnpm run build`
 
 This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
 
----
-
-Built with ❤️ using React Router.
