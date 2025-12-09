@@ -295,26 +295,27 @@ export default function Multinationals() {
 						<CardTitle>All Stores</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Top</TableHead>
-									<TableHead>Owner</TableHead>
-									<TableHead>Store</TableHead>
-									<TableHead>Currency</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{stores.map((row) => (
-									<TableRow key={row.store.id}>
-										<TableCell>{row.top.name}</TableCell>
-										<TableCell>{row.owner.name}</TableCell>
-										<TableCell>{row.store.id}</TableCell>
-										<TableCell>{row.currency}</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+						<DataTable
+							columns={[
+								{
+									accessorKey: "top.name",
+									header: "Top",
+								},
+								{
+									accessorKey: "owner.name",
+									header: "Owner",
+								},
+								{
+									accessorKey: "store.id",
+									header: "Store",
+								},
+								{
+									accessorKey: "currency",
+									header: "Currency",
+								},
+							]}
+							data={stores}
+						/>
 					</CardContent>
 				</Card>
 			</div>
