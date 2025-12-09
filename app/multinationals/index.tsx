@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Bindings, Prolog } from "scryer";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "~/components/ui/card";
 import { DataTable } from "~/components/ui/data-table";
 import {
 	Table,
@@ -212,13 +218,27 @@ export default function Multinationals() {
 							selectedId={selectedCompany || undefined}
 						/>
 						{companyDetails && (
-							<div className="mt-4">
-								<h3 className="font-semibold">{companyDetails.id}</h3>
-								{companyDetails.currency && (
-									<p>Currency: {companyDetails.currency}</p>
-								)}
-								<CompanyTree company={companyDetails} />
-							</div>
+							<Card>
+								<CardHeader>
+									<CardTitle>{companyDetails.id}</CardTitle>
+									<CardDescription>
+										<dl>
+											<dt>Currency</dt>
+											<dd>{companyDetails.currency}</dd>
+										</dl>
+									</CardDescription>
+								</CardHeader>
+								<CardContent>
+									<CardDescription>
+										<dl>
+											<dt>Subsidiaries</dt>
+											<dd>
+												<CompanyTree company={companyDetails} />
+											</dd>
+										</dl>
+									</CardDescription>
+								</CardContent>
+							</Card>
 						)}
 					</CardContent>
 				</Card>
