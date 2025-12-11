@@ -1,3 +1,9 @@
+:- use_module(library(dcgs)).
+:- use_module(library(pairs)).
+:- use_module(library(serialization/json)).
+:- use_module(library(lists)).
+:- use_module(library(debug)).
+
 % --- Data: Companies & Hierarchy ---
 
 % --- Data: Companies ---
@@ -62,3 +68,62 @@ owns_or_self(Parent, Child) :-
 top_level_owner(Top, Entity) :-
     owns_or_self(Top, Entity),
     \+ has_subsidiary(_, Top).
+
+
+% --- JSON Serialization Example ---
+
+% company_tree/2: Builds a tree structure of a company, its subsidiaries, and stores.
+% company_tree(CompanyID, Tree).
+company_tree(CompanyID, Tree) :-
+    company(CompanyID, Name),
+    findall(SubTree, 
+            (has_subsidiary(CompanyID, SubsidiaryID),
+            company_tree(SubsidiaryID, SubTree)), 
+            SubTrees),
+    findall(Store, (has_store(CompanyID, StoreID), store(StoreID, StoreLocation), Store = [StoreID, StoreLocation]), Stores),
+    Tree = [CompanyID, Name, SubTrees, Stores].
+
+% store_pairs/2: Serializes a store to KV-pairs ready for JSON serialization.
+store_pairs([StoreID, Location], Pairs) :- 
+    atom_chars(StoreID, StoreIDChars),
+    Pairs = pairs([
+        string("id")-string(StoreIDChars),
+        string("location")-string(Location)
+    ]).
+
+% company_tree_pairs/2: Serializes a company tree to KV-pairs ready for JSON serialization.
+company_tree_pairs([CompanyID, Name, Subsidiaries, Stores], Pairs) :- 
+    atom_chars(CompanyID, CompanyIDChars),
+    findall(SubPairs, 
+            (member(SubTree, Subsidiaries), company_tree_pairs(SubTree, SubPairs)),
+            SubsidiariesPairs),
+    findall(StorePairs, 
+            (member(Store, Stores), store_pairs(Store, StorePairs)),
+            StoresPairs),
+    Pairs=pairs([
+        string("id")-string(CompanyIDChars),
+        string("name")-string(Name),
+        string("subsidiaries")-list(SubsidiariesPairs),
+        string("stores")-list(StoresPairs)
+    ]).
+
+% company_tree_json/2: Serializes a company tree to JSON format.
+company_tree_json(Tree, Json) :- 
+    Tree = [_CompanyID, _Name, _ , _ ],
+    company_tree_pairs(Tree, Pairs),
+    phrase(json_chars(Pairs), Json).
+
+
+% --- Example Queries ---
+% FIRST
+% docker run -v .:/mnt -it mjt128/scryer-prolog
+%
+% consult('/mnt/app/multinationals/rules.pl').
+%
+% ?- accounting_currency(bigco_reykjavik, Currency).
+% phrase(json_chars(pairs([string("id")-string("foo")])), Cs).
+% company_tree(bigco_iceland, Tree).
+% company_tree(bigco_intl, Tree).
+% company_tree(bigco_denmark, Tree), company_tree_pairs(Tree, Pairs).
+% company_tree(bigco_denmark, Tree), company_tree_pairs(Tree, Pairs), phrase(json_chars(Pairs), Json). 
+% company_tree(bigco_intl, Tree), company_tree_json(Tree, Json).
