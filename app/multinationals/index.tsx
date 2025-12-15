@@ -128,10 +128,12 @@ export default function Multinationals() {
 						top: {
 							id: b.TopId.valueOf().toString(),
 							name: b.TopName.valueOf().toString(),
+							currency: b.TopCurrency.valueOf().toString().toUpperCase(),
 						},
 						owner: {
 							id: b.OwnerId.valueOf().toString(),
 							name: b.OwnerName.valueOf().toString(),
+							currency: b.OwnerCurrency.valueOf().toString().toUpperCase(),
 						},
 						store: {
 							id: b.StoreId.valueOf().toString(),
