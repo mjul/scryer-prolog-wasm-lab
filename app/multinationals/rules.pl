@@ -1,3 +1,4 @@
+% -*- Prolog -*- 
 :- use_module(library(dcgs)).
 :- use_module(library(pairs)).
 :- use_module(library(serialization/json)).
