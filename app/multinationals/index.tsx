@@ -1,6 +1,6 @@
 import { Handshake, Store } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Bindings, Prolog } from "scryer";
+import type { Bindings, Prolog, Term } from "scryer";
 import {
 	Card,
 	CardContent,
@@ -39,55 +39,6 @@ interface Company {
 	currency?: string;
 	subsidiaries: Company[];
 	stores: StoreFact[];
-}
-
-async function getSubsidiaries(
-	prolog: Prolog,
-	companyId: string,
-): Promise<Company[]> {
-	const subResult = await runQuery(
-		prolog,
-		`has_subsidiary(${companyId}, SubsidiaryId), company(SubsidiaryId, SubsidiaryName).`,
-	);
-	if (!subResult.ok) return [];
-
-	const subs: Company[] = [];
-	for (const binding of subResult.ok) {
-		const subId = binding.SubsidiaryId.valueOf().toString();
-		const subName = binding.SubsidiaryName.valueOf().toString();
-		const subSubs = await getSubsidiaries(prolog, subId);
-		const subStores: StoreFact[] = await getStores(prolog, subId);
-		const subCurrencyResult = await runQuery(
-			prolog,
-			`accounting_currency(${subId}, Ccy).`,
-		);
-		const subCurrency = subCurrencyResult.ok
-			? subCurrencyResult.ok[0]?.Ccy.valueOf().toString()
-			: undefined;
-		subs.push({
-			id: subId,
-			name: subName,
-			currency: subCurrency,
-			subsidiaries: subSubs,
-			stores: subStores,
-		});
-	}
-	return subs;
-}
-
-async function getStores(
-	prolog: Prolog,
-	companyId: string,
-): Promise<StoreFact[]> {
-	const storeResult = await runQuery(
-		prolog,
-		`has_store(${companyId}, StoreId), store(StoreId, Location).`,
-	);
-	if (!storeResult.ok) return [];
-	return storeResult.ok.map((b: Bindings) => ({
-		id: b.StoreId.valueOf().toString(),
-		location: b.Location.valueOf().toString(),
-	}));
 }
 
 function companyToTreeItem(company: Company): TreeItem {
@@ -203,28 +154,44 @@ export default function Multinationals() {
 	useEffect(() => {
 		async function loadCompanyDetails(prolog: Prolog, companyId: string) {
 			try {
-				// Get currency
-				const result = await runQuery(
-					prolog,
-					`company(${companyId}, Name), (accounting_currency(${companyId}, Currency) -> Ccy = Currency ; Ccy = undefined).`,
-				);
-				if (result.ok && result.ok.length === 1) {
-					// Currency is not available for all companies
-					const ccyResult = result.ok[0]?.Ccy.valueOf().toString();
-					const currency = ccyResult === "undefined" ? null : ccyResult;
-					const name = result.ok[0]?.Name.valueOf().toString();
-
-					// Get subsidiaries recursively
-					const subsidiaries = await getSubsidiaries(prolog, companyId);
-					const stores = await getStores(prolog, companyId);
-
-					setCompanyDetails({
-						id: companyId,
-						name,
-						currency: currency?.toUpperCase() || "-",
-						subsidiaries,
-						stores,
-					});
+				//const stmt = `company_tree(${companyId}, Tree), company_tree_json(Tree, Json).`;
+				const query = `company_tree(${companyId}, Tree).`;
+				const tree = await runQuery(prolog, query);
+				if (tree.ok && tree.ok.length === 1) {
+					function parseCompany(term: Term): Company {
+						const obj = term.valueOf();
+						if (typeof obj !== "object" || obj === null) {
+							throw new Error("Invalid company tree structure");
+						}
+						const [idObject, nameStr, subsTerm, storesTerm] = obj as Term[];
+						const id = idObject?.valueOf().toString() || "-id";
+						const name = nameStr?.valueOf().toString() || "-name";
+						const currency = "-"; // TODO
+						const subs: Company[] = ((subsTerm || []) as Term[]).map(
+							(sub: Term) => parseCompany(sub),
+						);
+						const stores: StoreFact[] = ((storesTerm || []) as Term[]).map(
+							(storeTerm: Term) => {
+								const storeObj = storeTerm.valueOf();
+								const [storeIdObj, locationStr] = storeObj as Term[];
+								return {
+									id: storeIdObj?.valueOf().toString() || "-store-id",
+									location:
+										locationStr?.valueOf().toString() || "-store-location",
+								} as StoreFact;
+							},
+						);
+						return {
+							id,
+							name,
+							currency,
+							subsidiaries: subs,
+							stores: stores,
+						};
+					}
+					const bindings: Term = tree.ok[0]?.Tree;
+					const company = bindings ? parseCompany(bindings) : null;
+					setCompanyDetails(company);
 				} else {
 					setError(`Company ${companyId} not found.`);
 					setCompanyDetails(null);
