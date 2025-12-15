@@ -176,7 +176,11 @@ export default function Multinationals() {
 					const jsonCharArray = tree.ok[0]?.Json as Term[];
 					// we cannot use valueOf() here because the term is here in fact an Object, {value: string}
 					const jsonStr = jsonCharArray
-						.map((o: Term) => o["value"] || "")
+						.map((o: Term) =>
+							typeof o === "object" && o !== null && "value" in o
+								? o["value"]
+								: "",
+						)
 						.join("");
 					const jsonCompany = JSON.parse(jsonStr);
 					const company = upperCaseCompanyCurrency(jsonCompany);
