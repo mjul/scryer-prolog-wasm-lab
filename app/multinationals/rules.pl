@@ -8,11 +8,11 @@
 % --- Data: Companies & Hierarchy ---
 
 % --- Data: Companies ---
-% company(CompanyID, Name).
-company(bigco_intl, "BigCo International").
-company(bigco_iceland, "BigCo Iceland").
-company(bigco_norway, "BigCo Norway").
-company(bigco_denmark, "BigCo Denmark").
+% company(CompanyID, Name, Currency).
+company(bigco_intl, "BigCo International", eur).
+company(bigco_iceland, "BigCo Iceland", isk).
+company(bigco_norway, "BigCo Norway", nok).
+company(bigco_denmark, "BigCo Denmark", dkk).
 
 % --- Data: Subsidiaries ---
 % has_subsidiary(ParentCompanyID, SubsidiaryCompanyID).
@@ -34,17 +34,13 @@ has_store(bigco_norway, bigco_oslo).
 has_store(bigco_denmark, bigco_herning).
 
 % --- Predicate: accounting_currency/2 ---
-% Idiomatic: Place specific facts (base cases) before recursive rules.
-% This allows Prolog to find the known answers immediately before trying to infer others.
 
-accounting_currency(bigco_iceland, isk).
-accounting_currency(bigco_norway, nok).
-accounting_currency(bigco_denmark, dkk).
+accounting_currency(CompanyID, Currency) :- 
+    company(CompanyID, _Name, Currency).
 
-% Recursive Rule: If not defined above, inherit from owner.
-accounting_currency(Store, Currency) :-
-    has_store(Owner, Store),
-    accounting_currency(Owner, Currency).
+accounting_currency(StoreID, Currency) :-
+    has_store(OwnerID, StoreID),
+    accounting_currency(OwnerID, Currency).
 
 
 % --- Logic: Ownership & Definitions ---
@@ -76,13 +72,13 @@ top_level_owner(Top, Entity) :-
 % company_tree/2: Builds a tree structure of a company, its subsidiaries, and stores.
 % company_tree(CompanyID, Tree).
 company_tree(CompanyID, Tree) :-
-    company(CompanyID, Name),
+    company(CompanyID, Name, Currency),
     findall(SubTree, 
             (has_subsidiary(CompanyID, SubsidiaryID),
             company_tree(SubsidiaryID, SubTree)), 
             SubTrees),
     findall(Store, (has_store(CompanyID, StoreID), store(StoreID, StoreLocation), Store = [StoreID, StoreLocation]), Stores),
-    Tree = [CompanyID, Name, SubTrees, Stores].
+    Tree = [CompanyID, Name, Currency, SubTrees, Stores].
 
 % store_pairs/2: Serializes a store to KV-pairs ready for JSON serialization.
 store_pairs([StoreID, Location], Pairs) :- 
@@ -93,8 +89,9 @@ store_pairs([StoreID, Location], Pairs) :-
     ]).
 
 % company_tree_pairs/2: Serializes a company tree to KV-pairs ready for JSON serialization.
-company_tree_pairs([CompanyID, Name, Subsidiaries, Stores], Pairs) :- 
+company_tree_pairs([CompanyID, Name, Currency, Subsidiaries, Stores], Pairs) :- 
     atom_chars(CompanyID, CompanyIDChars),
+    atom_chars(Currency, CurrencyChars),
     findall(SubPairs, 
             (member(SubTree, Subsidiaries), company_tree_pairs(SubTree, SubPairs)),
             SubsidiariesPairs),
@@ -104,13 +101,15 @@ company_tree_pairs([CompanyID, Name, Subsidiaries, Stores], Pairs) :-
     Pairs=pairs([
         string("id")-string(CompanyIDChars),
         string("name")-string(Name),
+        string("currency")-string(CurrencyChars),
         string("subsidiaries")-list(SubsidiariesPairs),
         string("stores")-list(StoresPairs)
     ]).
 
 % company_tree_json/2: Serializes a company tree to JSON format.
 company_tree_json(Tree, Json) :- 
-    Tree = [_CompanyID, _Name, _ , _ ],
+    Tree = [CompanyID, Name, Currency, _ , _ ],
+    company(CompanyID, Name, Currency),
     company_tree_pairs(Tree, Pairs),
     phrase(json_chars(Pairs), Json).
 

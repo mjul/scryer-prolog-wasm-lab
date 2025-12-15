@@ -14,10 +14,11 @@ import { createProlog, runQuery } from "~/lib/run-prolog";
 // This is not TypeScript-native import, but using ?raw to import the Prolog code as a string
 import PROLOG_PROGRAM from "./rules.pl?raw";
 
-/** Corresponds to the fact company(CompanyID, Name). */
+/** Corresponds to the fact company(CompanyID, Name, Currency). */
 interface CompanyFact {
 	id: string;
 	name: string;
+	currency: string;
 }
 
 /** Corresponds to the fact store(StoreID, Location). */
@@ -97,12 +98,16 @@ export default function Multinationals() {
 		async function loadData(prolog: Prolog) {
 			try {
 				// Get companies
-				const companyResult = await runQuery(prolog, "company(Id, Name).");
+				const companyResult = await runQuery(
+					prolog,
+					"company(Id, Name, Currency).",
+				);
 				if (companyResult.ok) {
 					const comps: CompanyFact[] = companyResult.ok.map((b: Bindings) => {
 						return {
 							id: b.Id.valueOf().toString(),
 							name: b.Name.valueOf().toString(),
+							currency: b.Currency.valueOf().toString().toUpperCase(),
 						};
 					});
 					setCompanies(comps);
@@ -110,12 +115,12 @@ export default function Multinationals() {
 
 				// Get stores data
 				const storeQuery = `
-					company(OwnerId, OwnerName),
+					company(OwnerId, OwnerName, OwnerCurrency),
 					has_store(OwnerId, StoreId),
 					store(StoreId, StoreLocation),
 					accounting_currency(StoreId, Currency),
 					top_level_owner(TopId, OwnerId),
-					company(TopId, TopName).
+					company(TopId, TopName, TopCurrency).
 				`;
 				const storeResult = await runQuery(prolog, storeQuery);
 				if (storeResult.ok) {
@@ -163,10 +168,12 @@ export default function Multinationals() {
 						if (typeof obj !== "object" || obj === null) {
 							throw new Error("Invalid company tree structure");
 						}
-						const [idObject, nameStr, subsTerm, storesTerm] = obj as Term[];
+						const [idObject, nameStr, currencyStr, subsTerm, storesTerm] =
+							obj as Term[];
 						const id = idObject?.valueOf().toString() || "-id";
 						const name = nameStr?.valueOf().toString() || "-name";
-						const currency = "-"; // TODO
+						const currency =
+							currencyStr?.valueOf().toString().toUpperCase() || "-";
 						const subs: Company[] = ((subsTerm || []) as Term[]).map(
 							(sub: Term) => parseCompany(sub),
 						);
