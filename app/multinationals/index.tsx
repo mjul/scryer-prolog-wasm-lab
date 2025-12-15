@@ -161,45 +161,25 @@ export default function Multinationals() {
 	useEffect(() => {
 		async function loadCompanyDetails(prolog: Prolog, companyId: string) {
 			try {
-				//const stmt = `company_tree(${companyId}, Tree), company_tree_json(Tree, Json).`;
-				const query = `company_tree(${companyId}, Tree).`;
+				const query = `company_tree(${companyId}, Tree), company_tree_json(Tree, Json).`;
 				const tree = await runQuery(prolog, query);
 				if (tree.ok && tree.ok.length === 1) {
-					function parseCompany(term: Term): Company {
-						const obj = term.valueOf();
-						if (typeof obj !== "object" || obj === null) {
-							throw new Error("Invalid company tree structure");
-						}
-						const [idObject, nameStr, currencyStr, subsTerm, storesTerm] =
-							obj as Term[];
-						const id = idObject?.valueOf().toString() || "-id";
-						const name = nameStr?.valueOf().toString() || "-name";
-						const currency =
-							currencyStr?.valueOf().toString().toUpperCase() || "-";
-						const subs: Company[] = ((subsTerm || []) as Term[]).map(
-							(sub: Term) => parseCompany(sub),
-						);
-						const stores: StoreFact[] = ((storesTerm || []) as Term[]).map(
-							(storeTerm: Term) => {
-								const storeObj = storeTerm.valueOf();
-								const [storeIdObj, locationStr] = storeObj as Term[];
-								return {
-									id: storeIdObj?.valueOf().toString() || "-store-id",
-									location:
-										locationStr?.valueOf().toString() || "-store-location",
-								} as StoreFact;
-							},
-						);
+					function upperCaseCompanyCurrency(company: Company): Company {
+						const currency = company.currency?.toUpperCase();
+						const subs = company.subsidiaries.map(upperCaseCompanyCurrency);
 						return {
-							id,
-							name,
+							...company,
 							currency,
 							subsidiaries: subs,
-							stores: stores,
 						};
 					}
-					const bindings: Term = tree.ok[0]?.Tree;
-					const company = bindings ? parseCompany(bindings) : null;
+					const jsonCharArray = tree.ok[0]?.Json as Term[];
+					// we cannot use valueOf() here because the term is here in fact an Object, {value: string}
+					const jsonStr = jsonCharArray
+						.map((o: Term) => o["value"] || "")
+						.join("");
+					const jsonCompany = JSON.parse(jsonStr);
+					const company = upperCaseCompanyCurrency(jsonCompany);
 					setCompanyDetails(company);
 				} else {
 					setError(`Company ${companyId} not found.`);
