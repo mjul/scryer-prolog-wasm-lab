@@ -107,12 +107,13 @@ company_tree_pairs([CompanyID, Name, Currency, Subsidiaries, Stores], Pairs) :-
     ]).
 
 % company_tree_json/2: Serializes a company tree to JSON format.
+% Cut after it finds the first valid serialization
 company_tree_json(Tree, Json) :- 
     Tree = [CompanyID, Name, Currency, _ , _ ],
     company(CompanyID, Name, Currency),
     company_tree_pairs(Tree, Pairs),
-    phrase(json_chars(Pairs), Json).
-
+    phrase(json_chars(Pairs), Json),
+    !.
 
 % --- Example Queries ---
 % FIRST
